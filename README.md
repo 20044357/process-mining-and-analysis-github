@@ -1,0 +1,49 @@
+- METRICHE
+	- Pull:
+		- Tempo di Ciclo (efficienza e velocità del processo):
+			- Tempo Medio di vita della pr (a prescindere che sia fusa o scartata):
+				- opened -> closed
+			- Tempo Medio (per essere integrata): 
+				- opened -> merged
+			- Tempo Medio di revisione (rapidità con cui team inizia revisione = grado di attenzione):
+				- opened -> timestamp 1^ revisione
+		- Qualità (successo del lavoro)
+			- Tasso di fusione (% pull opened che poi vengono effettivamente integrate) [STATICA]:
+				- N pr fuse / N totale pr
+		- Produttività e Frequenza (volume del lavoro e cadenza del rilascio):
+			- N pr aperte by actor:
+				- opened by acotr
+			- Frequenza di fusione (velocità con cui codice viene integrato nel ramo principale) [STATICA]:
+				- N pr fuse / Periodo di tempo
+		- Coinvolgimento e Collaborazione
+			- N revisori by repo (distribuzione delle responsabilitò e lv di collaborazione):
+				- [SOCIALE]
+	
+	- Issue:
+		- Tempo di Ciclo (efficienza e velocità del processo):
+			- Tempo Medio di vita dell'issue (a prescindere che sia risolta o scartata):
+            	- opened -> closed (pm4py.algo.discovery.performance_dfg) 
+		- Qualità (successo del lavoro):
+			- Tasso di risoluzione (% issue aperte che poi vengono effettivamente risolte):
+				- N issue risolte / N totale issue chiuse
+		- Produttività e Frequenza (volume del lavoro e cadenza del rilascio)
+			- N issue aperte per attore:
+				- opened by actor
+			- Tempo di risposta (velocità con cui il team inizia la revisione):
+				- opened -> 1^ comment (pm4py.algo.filtering.pandas.timestamp o equivalenti pandas per filtrare e calcolare la differenza tra i timestamp degli eventi).
+		- Coinvolgimento
+			- N commenti per issue:
+				- Conteggio dei commenti per ogni issue.
+	
+	- Rete Sociale:
+		- Lavoro di squadra:
+			- qualità dell'interazione per capire se gli actors compiono azioni direttamente collegate tra loro (cooperazione)
+		- Lavorare insieme:
+			- frequenza con cui più actors sono coinvolti nello stesso caso (non si preoccupa su come interagiscono)
+		- Passaggio di consegne:
+			- actors che si prende in carico eventi opened da altri (flusso completo)
+		- Subappalto: 
+			- Chi esegue il lavoro finale per conto di altri (non flusso completo)
+
+	- Heuristic Miner: percorsi tipici standard (di una Pull, actor...):
+		- trovo facilmente i colli di bottiglia (cio che non aiuta la repo) (potente anche dove ci sono molti comportamenti insoliti)
