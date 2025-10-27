@@ -1,0 +1,29 @@
+[project]
+name = "github-workflow-analyzer"
+version = "1.0.0"
+description = "Pipeline di analisi per scoprire modelli di workflow da dataset GitHub."
+dependencies = [
+    "polars[pyarrow]",
+    "pm4py",
+    "python-dotenv",
+    "pandas"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "black",    
+    "ruff"      
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.black]
+line-length = 88
+
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "W", "I"]

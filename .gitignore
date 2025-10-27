@@ -1,2 +1,7 @@
+# Directory da ignorare
+.pytest_cache/
+data/
+venv/
+
+# File di configurazione e var. d'ambiente
 .env
-data/dataset_analyzed/repo_metrics_stratified.parquet

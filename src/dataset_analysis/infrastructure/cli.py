@@ -2,121 +2,146 @@ import argparse
 import os
 import sys
 from dotenv import load_dotenv
+import logging
 
-# Importa i componenti dell'architettura
+# === Import dei componenti architetturali ===
 from ..config import AnalysisConfig
-from ..application.pipeline import AnalysisPipeline, AnalysisMode
+from ..application.interfaces import IDataPrepUseCase, AnalysisMode
+from ..application.pipeline import AnalysisPipeline
 from ..infrastructure.data_provider import ParquetDataProvider
 from ..infrastructure.pm4py_analyzer import PM4PyAnalyzer
 from ..infrastructure.file_writer import FileResultWriter
 from ..infrastructure.model_analyzer import PM4PyModelAnalyzer
+from ..infrastructure.log_analyzer import PM4PyLogAnalyzer
+from ..infrastructure.logging_config import configure_logging, LayerLoggerAdapter
+
 
 def main():
     """
-    Entry point principale del programma CLI.
-    Interpreta i comandi e lancia le pipeline appropriate.
+    Questo modulo implementa l'adattatore di ingresso (Presentation Layer)
+    dell'architettura esagonale: riceve i comandi, costruisce la configurazione
+    e delega l'esecuzione all'Application Layer tramite la porta IDataPrepUseCase.
     """
-    load_dotenv()
 
+    # --- Configurazione del logging uniforme per tutti i layer ---
+    configure_logging()
+    logger = LayerLoggerAdapter(logging.getLogger(__name__), {"layer": "Presentation"})
+    logger.info("CLI avviata con successo.")
+
+    # --- Caricamento variabili d’ambiente (solo in modalità normale) ---
+    if os.environ.get("TESTING_MODE") != "1":
+        load_dotenv()
+
+    # --- Parser dei comandi CLI ---
     parser = argparse.ArgumentParser(
         prog="dataset_analyzer",
-        description="Esegue pipeline di analisi sui dati GitHub per scoprire i workflow di processo.",
+        description=(
+            "Specifica la modalità di esecuzione della pipeline.\n"
+            "  full       - Esegue la pipeline completa (estrazione, metriche, stratificazione, sintesi)\n"
+            "  summary    - Aggrega i risultati delle analisi di processo\n"
+            "  giganti_popolari              - Analisi archetipica: collaborativi e popolari\n"
+            "  giganti_no_popolari           - Analisi archetipica: collaborativi ma non popolari\n"
+            "  giganti_popolari_no_collab    - Analisi archetipica: popolari ma non collaborativi"
+        ),
         formatter_class=argparse.RawTextHelpFormatter
     )
 
-    # --- Argomento Posizionale [RICICLATO E MIGLIORATO] ---
-    # Definisce l'azione principale da compiere.
     parser.add_argument(
         "command",
         choices=[mode.value for mode in AnalysisMode],
-        help=(
-            "Il comando (o modalità) da eseguire:\n"
-            "  full      - Esegue l'intera pipeline di preparazione dati (Metriche -> Stratificazione).\n"
-            "  q1_toxic  - Esegue l'analisi comparativa: Collaborazione 'Sana' vs 'Inefficace'.\n"
-            "  q2_hype   - Esegue l'analisi temporale: Impatto dell'Hype sui Processi.\n"
-            "  q3_review - Esegue l'analisi evolutiva: Nascita della Code Review."
-        )
+        help="Specifica la modalità di esecuzione della pipeline."
     )
-    
-    # --- Argomenti Opzionali [RICICLATI DAL TUO CODICE] ---
-    # Questi argomenti permettono di sovrascrivere le configurazioni di default o le variabili d'ambiente.
+
     parser.add_argument(
         "--dataset-dir",
         default=None,
-        help="Override del percorso del dataset (default: env DATASET_PATH o ./data/dataset_distillato)."
+        help="Directory dei dataset sorgente in formato Parquet."
     )
     parser.add_argument(
-        "--analysis-dir",
+        "--output-dir",
         default=None,
-        help="Override del percorso di output (default: env DATA_ANALYSIS o ./data/dataset_analyzed)."
+        help="Directory di destinazione per i risultati dell’analisi."
     )
     parser.add_argument(
         "--samples",
         type=int,
-        default=5, # Un default più ragionevole per le analisi mirate
-        help="Numero di repository da campionare per ogni archetipo (default: 5)."
-    )
-    parser.add_argument(
-        "--hm-threshold",
-        type=float,
-        default=0.5,
-        help="Soglia di dipendenza per Heuristic Miner (default: 0.5)."
+        default=5,
+        help="Numero di repository da campionare per ciascun gruppo (default: 5)."
     )
 
     args = parser.parse_args()
-    
-    # --- Esecuzione del Comando ---
 
-    # 1. COSTRUZIONE CONFIGURAZIONE [LOGICA RICICLATA DAL TUO CODICE]
-    #    Questa gerarchia (argomento CLI > variabile env > default) è una best practice.
+    # ===============================================================
+    #  1. COSTRUZIONE DELLA CONFIGURAZIONE
+    # ===============================================================
     try:
         dataset_dir = args.dataset_dir or os.environ.get("DATASET_PATH", "data/dataset_distillato")
-        analysis_dir = args.analysis_dir or os.environ.get("DATA_ANALYSIS", "data/dataset_analyzed")
+        output_dir = args.output_dir or os.environ.get("DATA_ANALYSIS", "data/dataset_analyzed")
         start_date_str = os.environ.get("ANALYSIS_START_DATE")
         end_date_str = os.environ.get("ANALYSIS_END_DATE")
 
         if not start_date_str or not end_date_str:
-            raise ValueError("Variabili d'ambiente ANALYSIS_START_DATE e/o ANALYSIS_END_DATE non trovate.")
+            raise ValueError(
+                "Variabili d'ambiente ANALYSIS_START_DATE e ANALYSIS_END_DATE non definite."
+            )
 
         config = AnalysisConfig(
-            dataset_base_dir=dataset_dir,
-            analysis_base_dir=analysis_dir,
-            n_per_strato=args.samples, # n_per_strato è usato in config
-            analysis_start_date=start_date_str,
-            analysis_end_date=end_date_str
+            dataset_directory=dataset_dir,
+            output_directory=output_dir,
+            start_date=start_date_str,
+            end_date=end_date_str
         )
-        print(f"Configurazione caricata: {config}")
-    
+
+        logger.info(f"Configurazione caricata: {config}")
+
     except Exception as e:
-        print(f"[ERRORE FATALE] Errore nella configurazione: {e}")
+        logger.error(f"Errore durante la configurazione: {e}")
         sys.exit(1)
 
-    # 2. ASSEMBLAGGIO ADATTATORI [LOGICA RICICLATA DAL TUO CODICE]
-    #    La gestione centralizzata degli errori è ottima.
+    # ===============================================================
+    #  2. INIEZIONE DELLE DIPENDENZE (ADAPTERS)
+    # ===============================================================
     try:
-        # Assicurati che i nomi delle tue classi concrete siano corretti
-        # (es. ParquetParquetDataProvider, FileResultWriter)
-        provider = ParquetDataProvider(config)
-        analyzer = PM4PyAnalyzer(config)
+        provider = ParquetDataProvider(
+            dataset_directory=config.dataset_directory,
+            start_date=config.start_date,
+            end_date=config.end_date,
+            stratified_repositories_file=config.stratified_repositories_parquet,
+            output_directory=config.output_directory
+        )
+        analyzer = PM4PyAnalyzer()
         writer = FileResultWriter(config)
-        mode_analyzer = PM4PyModelAnalyzer()
+        model_analyzer = PM4PyModelAnalyzer()
+        log_analyzer = PM4PyLogAnalyzer()
+
+        logger.info("Adattatori infrastrutturali inizializzati correttamente.")
+
     except Exception as e:
-        print(f"[ERRORE FATALE] Impossibile inizializzare gli adattatori: {e}")
+        logger.critical(f"Impossibile inizializzare gli adattatori: {e}")
         sys.exit(1)
 
-    # 3. CREAZIONE E LANCIO DELLA PIPELINE [LOGICA COMBINATA]
+    # ===============================================================
+    #  3. ESECUZIONE DELLA PIPELINE (Application Layer)
+    # ===============================================================
     try:
-        # Crea la Pipeline, Iniettando le Dipendenze
-        pipeline = AnalysisPipeline(provider, analyzer, writer, config, mode_analyzer)
-        
-        # Converte l'argomento da stringa a Enum e lancia la pipeline
+        pipeline: IDataPrepUseCase = AnalysisPipeline(
+            provider=provider,
+            analyzer=analyzer,
+            writer=writer,
+            config=config,
+            mode_analyzer=model_analyzer,
+            log_analyzer=log_analyzer
+        )
+
         execution_mode = AnalysisMode(args.command)
+        logger.info(f"Esecuzione pipeline in modalità '{execution_mode.value}' avviata...")
         pipeline.run(mode=execution_mode)
+        logger.info("Pipeline completata con successo.")
 
     except Exception as e:
-        print(f"\n[ERRORE FATALE] La pipeline in modalità '{args.command}' si è interrotta: {e}")
-        # import traceback; traceback.print_exc() # Utile per il debug
+        logger.critical(f"Errore fatale durante l'esecuzione della pipeline: {e}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

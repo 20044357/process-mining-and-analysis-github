@@ -3,73 +3,54 @@ import os
 
 @dataclass
 class AnalysisConfig:
-    """Centralizza tutti i parametri e i percorsi del progetto."""
-    # Percorsi di base (configurabili da CLI o env vars)
-    dataset_base_dir: str
-    analysis_base_dir: str
+    """
+    Questa classe definisce tutti i parametri di configurazione globali e i percorsi
+    dei file generati dal sistema. È condivisa tra i vari layer dell'architettura
+    (Application, Domain, Infrastructure) per garantire coerenza e tracciabilità.
+    """
 
-    # Parametri della finestra temporale
-    analysis_start_date: str
-    analysis_end_date: str
-    
-    # Parametri di stratificazione
-    n_per_strato: int = 2
-    sampling_seed: int = 42
-    
-    # --- Parametri di Campionamento ---
+    # --- Directory principali ---
+    dataset_directory: str        # Directory contenente i dataset sorgente (file Parquet di GitHub)
+    output_directory: str         # Directory di destinazione per i risultati dell'analisi
+
+    # --- Finestra temporale di analisi ---
+    start_date: str               # Data di inizio del periodo analizzato
+    end_date: str                 # Data di fine del periodo analizzato
+
+    # --- Costanti statistiche per la suddivisione dei gruppi ---
     QUANTILES = [0.5, 0.9, 0.99]
-    QUANTILE_LABELS = ["Basso", "Medio", "Alto", "Gigante"]
-    MIN_SAMPLES_PER_STRATUM = 10
-    PROPORTIONAL_SAMPLE_RATE = 0.0001 # 0.01%
-    RANDOM_SEED = 42
+    QUANTILE_LABELS = ["Low", "Medium", "High", "Giant"]
 
-    # Parametri di mining
-    #hm_dependency_threshold: float = 0.2 # Soglia "Esplorativa"
-
-    # Parametro per il chunking
-    chunk_size: int = 30000
-    
-    # Nomi dei file di output
-    @property
-    def eligible_ids_path(self) -> str:
-        return os.path.join(self.analysis_base_dir, "eligible_repo_ids.txt")
-        
-    @property
-    def metrics_age_file_path(self) -> str:
-        return os.path.join(self.analysis_base_dir, "metrics_age.parquet")
+    # ======================================================
+    #                 Percorsi dei file di output
+    # ======================================================
 
     @property
-    def metrics_gold_file_path(self) -> str:
-        return os.path.join(self.analysis_base_dir, "metrics_gold.parquet")
+    def raw_metrics_file(self) -> str:
+        """Metriche grezze calcolate direttamente sugli eventi originari."""
+        return os.path.join(self.output_directory, "metrics_raw.parquet")
 
     @property
-    def metrics_file_path(self) -> str:
-        return os.path.join(self.analysis_base_dir, "metrics.parquet")
+    def stratification_thresholds_file(self) -> str:
+        """Soglie numeriche calcolate per la definizione dei gruppi di stratificazione."""
+        return os.path.join(self.output_directory, "stratification_thresholds.json")
 
     @property
-    def thresholds_file_path(self) -> str:
-        return os.path.join(self.analysis_base_dir, "stratification_thresholds.json")
-    
-    @property
-    def stratified_file_path_parquet(self) -> str:
-        return os.path.join(self.analysis_base_dir, "repo_metrics_stratified.parquet")
+    def stratified_repositories_parquet(self) -> str:
+        """Risultati stratificati (formato Parquet) con l'appartenenza di ciascun repository al relativo gruppo."""
+        return os.path.join(self.output_directory, "repositories_stratified.parquet")
 
     @property
-    def stratified_file_path_csv(self) -> str:
-        return os.path.join(self.analysis_base_dir, "repo_metrics_stratified.csv")
+    def stratified_repositories_csv(self) -> str:
+        """Risultati stratificati (formato CSV) utilizzabili per analisi esplorative."""
+        return os.path.join(self.output_directory, "repositories_stratified.csv")
 
     @property
-    def strata_distribution_file_path_csv(self) -> str:
-        return os.path.join(self.analysis_base_dir, "strata_distribution.csv")
+    def group_distribution_file(self) -> str:
+        """Distribuzione complessiva delle repository nei vari gruppi di stratificazione."""
+        return os.path.join(self.output_directory, "group_distribution.csv")
 
     @property
-    def sample_info_path(self) -> str:
-        return os.path.join(self.analysis_base_dir, "campione_stratificato.csv")
-
-    @property
-    def sample_ids_path(self) -> str:
-        return os.path.join(self.analysis_base_dir, "campione_stratificato_ids.txt")
-
-    @property
-    def kpi_results_path(self) -> str:
-        return os.path.join(self.analysis_base_dir, "kpi_results.csv")
+    def quantitative_summary_file(self) -> str:
+        """Tabella di sintesi finale con tutti i KPI calcolati."""
+        return os.path.join(self.output_directory, "quantitative_summary.csv")
