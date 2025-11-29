@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import datetime, timedelta, date
 from typing import Dict, List, Tuple
 
-def get_processed_hours_per_day(base_dir: Path) -> Dict[date, int]:
+def get_processed_hours_per_day(output_directory: Path) -> Dict[date, int]:
     """
     Scansiona la struttura del dataset e restituisce un dizionario con i giorni
     trovati e il numero di ore processate per ciascuno, leggendo da index.json.
@@ -12,7 +12,7 @@ def get_processed_hours_per_day(base_dir: Path) -> Dict[date, int]:
     La struttura attesa è base_dir/YYYY/MM/DD/index.json
     """
     processed_days = {}
-    index_files = base_dir.glob("*/*/*/index.json")
+    index_files = output_directory.glob("*/*/*/index.json")
     
     for index_path in index_files:
         try:
@@ -63,7 +63,7 @@ def main():
     parser.add_argument(
         "--path",
         required=True,
-        help="Percorso alla cartella base del dataset (es. 'data/dataset_distillato')."
+        help="Percorso alla cartella base del dataset (es. 'data/dataset')."
     )
     args = parser.parse_args()
     

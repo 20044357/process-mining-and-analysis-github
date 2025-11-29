@@ -1,0 +1,21 @@
+\babel@toc {italian}{}\relax 
+\babel@toc {italian}{}\relax 
+\contentsline {section}{\numberline {1}Requisiti di Sistema}{2}{section.1}%
+\contentsline {section}{\numberline {2}Installazione}{2}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Passo 1: Estrazione del Progetto}{2}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Passo 2: Creazione dell'Ambiente Virtuale}{2}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Passo 3: Installazione delle Librerie}{2}{subsection.2.3}%
+\contentsline {section}{\numberline {3}Configurazione}{3}{section.3}%
+\contentsline {section}{\numberline {4}Modulo 1: Dataset Ingestor (Acquisizione)}{3}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Opzioni di Avvio}{3}{subsection.4.1}%
+\contentsline {subsubsection}{\numberline {4.1.1}1. Download Range Temporale (Batch)}{3}{subsubsection.4.1.1}%
+\contentsline {subsubsection}{\numberline {4.1.2}2. Download Ore Singole (Atomico)}{4}{subsubsection.4.1.2}%
+\contentsline {subsubsection}{\numberline {4.1.3}3. Visualizza Info Dataset}{4}{subsubsection.4.1.3}%
+\contentsline {subsubsection}{\numberline {4.1.4}4. Reset Dataset}{4}{subsubsection.4.1.4}%
+\contentsline {section}{\numberline {5}Modulo 2: Dataset Validator (Verifica)}{4}{section.5}%
+\contentsline {section}{\numberline {6}Modulo 3: Dataset Analysis (Elaborazione)}{4}{section.6}%
+\contentsline {subsection}{\numberline {6.1}1. Preparazione Completa e Stratificazione}{4}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}2. Process Discovery (Mining)}{5}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}3. Confronto Strutturale}{5}{subsection.6.3}%
+\contentsline {section}{\numberline {7}Esecuzione dei Test}{5}{section.7}%
+\contentsline {section}{\numberline {8}Workflow Riassuntivo}{5}{section.8}%

@@ -1,0 +1,265 @@
+\documentclass[a4paper,12pt]{article}
+
+% --- Pacchetti ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[italian]{babel}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{listings} % Per il codice
+\usepackage{hyperref} % Per i link
+\usepackage{titlesec}
+
+% --- Configurazione Pagina ---
+\geometry{margin=2.5cm}
+
+% --- Configurazione Code Highlighting ---
+\definecolor{codegray}{rgb}{0.95,0.95,0.95}
+\definecolor{codeborder}{rgb}{0.8,0.8,0.8}
+\definecolor{darkblue}{rgb}{0,0,0.6}
+\definecolor{darkgreen}{rgb}{0,0.4,0}
+
+\lstset{
+    backgroundcolor=\color{codegray},
+    basicstyle=\ttfamily\small,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    commentstyle=\color{darkgreen},
+    keywordstyle=\color{darkblue}\bfseries,
+    frame=single,
+    rulecolor=\color{codeborder},
+    keepspaces=true,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    extendedchars=true,
+    inputencoding=utf8,  % Forza UTF-8
+    literate={à}{{\`a}}1 {è}{{\`e}}1 {ì}{{\`i}}1 {ò}{{\`o}}1 {ù}{{\`u}}1
+}
+
+% --- Configurazione Link ---
+\hypersetup{
+    colorlinks=true,
+    linkcolor=darkblue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    pdftitle={Manuale Installazione},
+    pdfpagemode=FullScreen,
+}
+
+% --- Titolo ---
+\title{\textbf{Manuale di Installazione e Utilizzo} \\ \large Pipeline Scalabile per Analisi Comportamentale su GitHub}
+\author{Federico Mondelli}
+\date{Anno Accademico 2024/2025}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Questo documento guida l'utente nell'installazione dell'ambiente, nella configurazione e nell'esecuzione di tutti i moduli del sistema: \emph{Ingestor} (Acquisizione), \emph{Validator} (Verifica) e \emph{Analyzer} (Elaborazione e Mining).
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\section{Requisiti di Sistema}
+
+Prima di procedere con l'installazione, assicurarsi che la macchina soddisfi i seguenti requisiti minimi:
+
+\begin{itemize}
+    \item \textbf{Sistema Operativo:} Windows 10/11, macOS o Linux.
+    \item \textbf{Python:} Versione \textbf{3.10} o superiore.
+    \item \textbf{RAM:} Minimo 8 GB (Raccomandati 16 GB per dataset estesi).
+    \item \textbf{Spazio su Disco:} Dipende dal range temporale scaricato (stimare circa 500 MB per ogni giorno di dati grezzi).
+    \item \textbf{Connessione Internet:} Necessaria per il modulo \emph{Ingestor} (download da GHArchive).
+\end{itemize}
+
+\section{Installazione}
+
+\subsection{Passo 1: Estrazione del Progetto}
+Scaricare ed estrarre l'archivio del progetto in una cartella locale (es. \texttt{github\_process\_mining}). Aprire un terminale (Prompt dei comandi o PowerShell su Windows, Bash su Linux/macOS) e posizionarsi nella cartella radice del progetto.
+
+\subsection{Passo 2: Creazione dell'Ambiente Virtuale}
+Si raccomanda vivamente l'uso di un ambiente virtuale per isolare le dipendenze.
+
+\textbf{Su Windows:}
+\begin{lstlisting}[language=bash]
+python -m venv venv
+venv\Scripts\activate
+\end{lstlisting}
+
+\textbf{Su macOS / Linux:}
+\begin{lstlisting}[language=bash]
+python3 -m venv venv
+source venv/bin/activate
+\end{lstlisting}
+
+\subsection{Passo 3: Installazione delle Librerie}
+Il progetto richiede librerie specifiche per l'elaborazione dati (Polars), il process mining (PM4Py) e la visualizzazione. Assicurarsi che il file \texttt{requirements.txt} sia presente nella root ed eseguire:
+
+\begin{lstlisting}[language=bash]
+pip install -r requirements.txt
+\end{lstlisting}
+
+\textbf{Contenuto di riferimento per \texttt{requirements.txt}:}
+\begin{lstlisting}
+requests>=2.28.0
+polars>=0.19.0
+pm4py>=2.7.0
+pandas>=2.0.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+scikit-learn>=1.3.0
+scipy>=1.10.0
+python-dotenv>=1.0.0
+pytest>=7.0.0
+\end{lstlisting}
+
+\section{Configurazione}
+
+Creare un file chiamato \textbf{\texttt{.env}} nella cartella radice del progetto. Questo file definirà i percorsi di salvataggio e le variabili d'ambiente.
+
+\textbf{Esempio di contenuto \texttt{.env}:}
+\begin{lstlisting}
+# Percorso dove verranno salvati i dati grezzi (Parquet)
+DATASET_PATH=data/dataset_distillato
+
+# Percorso dove verranno salvati i risultati dell'analisi (Grafici, CSV)
+DATA_ANALYSIS=data/dataset_analyzed
+
+# Range temporale per l'Analisi (Formato ISO 8601)
+ANALYSIS_START_DATE="2024-01-01T00:00:00Z"
+ANALYSIS_END_DATE="2024-01-05T23:59:59Z"
+\end{lstlisting}
+
+\textit{Nota: Le cartelle di destinazione verranno create automaticamente dal software se non esistono.}
+
+\section{Modulo 1: Dataset Ingestor (Acquisizione)}
+
+Questo modulo scarica i dati da GitHub Archive e li converte in formato Parquet.
+
+\textbf{Comando base:} \texttt{python -m src.dataset\_ingestor.cli}
+
+\subsection{Opzioni di Avvio}
+
+\subsubsection{1. Download Range Temporale (Batch)}
+Scarica e processa un intervallo continuo di date. Al termine, consolida automaticamente i dati in un file Parquet giornaliero.
+
+\begin{lstlisting}[language=bash]
+python -m src.ingestor.presentation.cli --download 2025-01-01-0 2025-01-01-23
+\end{lstlisting}
+\begin{itemize}
+    \item \textbf{Formato:} \texttt{YYYY-MM-DD-H} (ore 0-23, senza zero iniziale per le ore singole).
+    \item \textbf{Esempio:} Scarica dal 1 Gennaio h 00:00 al 1 Gennaio h 23:00.
+\end{itemize}
+
+\subsubsection{2. Download Ore Singole (Atomico)}
+Scarica specifiche ore. Utile per debug o per recuperare porzioni mancanti a causa di errori di rete.
+
+\begin{lstlisting}[language=bash]
+python -m src.dataset_ingestor.cli --hours 2025-01-01-10 2025-01-01-15
+\end{lstlisting}
+
+\subsubsection{3. Visualizza Info Dataset}
+Mostra statistiche sui dati presenti in locale (dimensione, copertura).
+
+\begin{lstlisting}[language=bash]
+python -m src.dataset_ingestor.cli --info
+\end{lstlisting}
+
+\subsubsection{4. Reset Dataset}
+Cancella l'intero dataset scaricato e gli indici locali, permettendo di ripartire da zero. Da usare con cautela.
+
+\begin{lstlisting}[language=bash]
+python -m src.dataset_ingestor.cli --reset
+\end{lstlisting}
+\begin{itemize}
+    \item \textbf{Azione:} Elimina ricorsivamente la cartella dei dati definita nel file \texttt{.env}.
+    \item \textbf{Interazione:} Richiede una conferma manuale (s/n) da terminale prima di procedere all'eliminazione.
+\end{itemize}
+
+
+\section{Modulo 2: Dataset Validator (Verifica)}
+
+Strumento di raccordo per verificare la coerenza temporale prima dell'analisi. Scansiona gli indici generati dall'Ingestor.
+
+\begin{lstlisting}[language=bash]
+python src/tools/validate_dataset.py --path data/dataset_distillato
+\end{lstlisting}
+\textit{Attenzione: Assicurarsi che il path corrisponda a quello definito nel \texttt{.env}.}
+
+\textbf{Output:} Suggerisce il periodo contiguo più lungo (senza buchi) da copiare nelle variabili \texttt{ANALYSIS\_START\_DATE} e \texttt{ANALYSIS\_END\_DATE} del file \texttt{.env}.
+
+\section{Modulo 3: Dataset Analysis (Elaborazione)}
+
+Questo è il cuore del sistema. Esegue stratificazione, mining e confronto.
+I comandi vanno eseguiti \textbf{rigorosamente in questo ordine}.
+
+\textbf{Comando base:} \texttt{python -m src.dataset\_analysis.cli}
+
+\subsection{1. Preparazione Completa e Stratificazione}
+Carica i dati Parquet, calcola le metriche, definisce i quantili dinamici e assegna gli Archetipi.
+
+\begin{lstlisting}[language=bash]
+python -m src.analyzer.infrastructure.cli full
+\end{lstlisting}
+
+\textbf{Output:} Genera il file master \texttt{repositories\_stratified.parquet} e il report di distribuzione.
+
+\subsection{2. Process Discovery (Mining)}
+Estrae gli eventi per ogni Archetipo, applica i filtri semantici (es. rimozione bot) ed esegue l'algoritmo \textbf{Heuristics Miner} in modalità ibrida (aggregazione Polars + mining PM4Py).
+
+\begin{lstlisting}[language=bash]
+python -m src.analyzer.infrastructure.cli process_discovery
+\end{lstlisting}
+
+\textbf{Output:} Salva i modelli di processo (\texttt{.pkl}), i log \texttt{.xes} e le immagini dei grafi (\texttt{.png}).
+
+\subsection{3. Confronto Strutturale}
+Carica i modelli generati e calcola le metriche di distanza (Jaccard, Frobenius, TVD) e complessità.
+
+\begin{lstlisting}[language=bash]
+python -m src.analyzer.infrastructure.cli structural_comparison
+\end{lstlisting}
+
+\textbf{Output:} Genera Heatmap differenziali, Radar Chart, MDS Plot e tabelle CSV nella cartella \texttt{final\_analysis}.
+
+\section{Esecuzione dei Test}
+
+Per verificare che tutti i componenti funzionino correttamente (Unit Test e Integration Test), eseguire:
+
+\begin{lstlisting}[language=bash]
+pytest
+\end{lstlisting}
+
+Se l'installazione è corretta, il terminale mostrerà una serie di punti verdi indicanti il superamento dei test.
+
+\section{Workflow Riassuntivo}
+
+Per riprodurre l'esperimento completo da zero:
+
+\begin{enumerate}
+    \item \textbf{Ingestor:} Scaricare un giorno di dati. \\
+    \texttt{python -m src.ingestor.presentation.cli --download 2024-01-01-0 2024-01-01-23}
+    
+    \item \textbf{Validator:} Controllare che il giorno sia completo. \\
+    \texttt{python src/utils/validate\_dataset.py --path data/dataset\_distillato}
+    
+    \item \textbf{Configurazione:} Aggiornare il file \texttt{.env} con le date corrette.
+    
+    \item \textbf{Analyzer (Step 1):} Preparare e stratificare. \\
+    \texttt{python -m src.analyzer.infrastructure.cli full}
+    
+    \item \textbf{Analyzer (Step 2):} Generare i modelli di processo. \\
+    \texttt{python -m src.analyzer.infrastructure.cli process\_discovery}
+    
+    \item \textbf{Analyzer (Step 3):} Eseguire il confronto strutturale. \\
+    \texttt{python -m src.analyzer.infrastructure.cli structural\_comparison}
+\end{enumerate}
+
+I risultati finali (immagini PNG e file CSV) si troveranno nella cartella definita in \texttt{DATA\_ANALYSIS}.
+
+\end{document}

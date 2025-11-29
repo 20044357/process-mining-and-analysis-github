@@ -1,7 +1,32 @@
-# Directory da ignorare
-.pytest_cache/
-data/
+# Ambienti virtuali
 venv/
-
-# File di configurazione e var. d'ambiente
+.venv/
+env/
 .env
+
+# File di configurazione locale
+.env
+
+# Cache di Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Cache e report dei test
+.pytest_cache/
+.coverage
+
+# Dati generati e risultati dell'analisi
+# viene creata localmente eseguendo le pipeline.
+data/
+presentazione/
+relazione/
+tests/
+manuale_installazione/
+
+# File di log
+*.log
+
+# Cartelle degli editor di codice
+.vscode/
