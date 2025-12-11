@@ -341,53 +341,78 @@ class FileResultWriter(IResultWriter):
         plt.savefig(output_path, bbox_inches='tight', dpi=300)
         plt.close()
         self.logger.info(f"Immagine Identikit salvata in: {output_path}")
-
+    
     def save_radar_chart(self, df: pd.DataFrame, filename: str, title: str):
-        output_path = os.path.join(self.config.structural_comparison_directory, filename)
-        self.logger.info(f"Generazione Radar Chart in: {output_path}")
+            output_path = os.path.join(self.config.structural_comparison_directory, filename)
+            self.logger.info(f"Generazione Radar Chart in: {output_path}")
 
-        try:
-            if "Archetype" in df.columns:
-                plot_df = df.set_index("Archetype")
-            else:
-                plot_df = df.copy()
-
-            numeric_cols = plot_df.select_dtypes(include=[np.number]).columns
-            plot_df = plot_df[numeric_cols]
-            
-            normalized_df = (plot_df - plot_df.min()) / (plot_df.max() - plot_df.min())
-
-            categories = list(normalized_df.columns)
-            N = len(categories)
-            angles = [n / float(N) * 2 * math.pi for n in range(N)]
-            angles += angles[:1]
-
-            plt.figure(figsize=(10, 10))
-            ax = plt.subplot(111, polar=True)  
-
-            plt.xticks(angles[:-1], categories, color='grey', size=10)
-
-            ax.set_rlabel_position(0) # type: ignore
-
-            plt.yticks([0.25, 0.5, 0.75], ["25%", "50%", "75%"], color="grey", size=7)
-            plt.ylim(0, 1)
-
-            colors = sns.color_palette("bright", n_colors=len(normalized_df))
-            for i, (row_name, row_data) in enumerate(normalized_df.iterrows()):
-                values = values = row_data.to_numpy().flatten().tolist()
-                values += values[:1] 
+            try:
+                # 1. FILTRO PER I DUE ARCHETIPI
+                # Lavoriamo solo su questi due per il confronto diretto
+                target_archetypes = ["Giant_All", "Giant_Pop_LowCollab"]
                 
-                ax.plot(angles, values, linewidth=2, linestyle='solid', label=row_name, color=colors[i])
-                ax.fill(angles, values, color=colors[i], alpha=0.1)
+                if "Archetype" in df.columns:
+                    df_filtered = df[df["Archetype"].isin(target_archetypes)].copy()
+                    if df_filtered.empty:
+                        self.logger.warning(f"Nessun dato per {target_archetypes}")
+                        return
+                    plot_df = df_filtered.set_index("Archetype")
+                else:
+                    plot_df = df.copy()
 
-            plt.title(title, size=16, y=1.1)
-            plt.legend(loc='upper right', bbox_to_anchor=(0.1, 0.1))
-            
-            plt.tight_layout()
-            plt.savefig(output_path, dpi=300)
-            plt.close()
-        except Exception as e:
-            self.logger.error(f"Errore generazione Radar Chart: {e}", exc_info=True)
+                # 2. SELEZIONE DATI NUMERICI
+                numeric_cols = plot_df.select_dtypes(include=[np.number]).columns
+                plot_df = plot_df[numeric_cols]
+                
+                # 3. NORMALIZZAZIONE "RATIO TO MAX" (LA FIX)
+                # Calcoliamo il massimo SOLO tra questi due archetipi
+                max_vals = plot_df.max()
+                
+                # Evitiamo divisioni per zero
+                max_vals[max_vals == 0] = 1 
+                
+                # Formula: Valore / Massimo
+                # Esempio Nodi: 6 / 12 = 0.5 (Visibile!) invece di (6-6)/(12-6)=0 (Invisibile)
+                normalized_df = plot_df.div(max_vals)
+                
+                # Opzionale: Aggiungiamo un piccolo offset base (es. 0.1) se vuoi 
+                # evitare che valori molto piccoli siano troppo vicini al centro,
+                # ma con la divisione semplice è già molto meglio.
+
+                # --- PLOTTING (Standard) ---
+                categories = list(normalized_df.columns)
+                N = len(categories)
+                angles = [n / float(N) * 2 * math.pi for n in range(N)]
+                angles += angles[:1]
+
+                plt.figure(figsize=(10, 10))
+                ax = plt.subplot(111, polar=True)  
+
+                plt.xticks(angles[:-1], categories, color='grey', size=10)
+                ax.set_rlabel_position(0)  # type: ignore
+                
+                # Griglia fissa 0.25, 0.50, 0.75, 1.00
+                plt.yticks([0.25, 0.5, 0.75, 1.0], ["25%", "50%", "75%", "Max"], color="grey", size=7)
+                plt.ylim(0, 1.05) # Un po' di margine oltre l'1
+
+                colors = sns.color_palette("bright", n_colors=len(normalized_df))
+                
+                for i, (row_name, row_data) in enumerate(normalized_df.iterrows()):
+                    values = row_data.to_numpy().flatten().tolist()
+                    values += values[:1] 
+                    
+                    ax.plot(angles, values, linewidth=2, linestyle='solid', label=row_name, color=colors[i])
+                    ax.fill(angles, values, color=colors[i], alpha=0.1)
+
+                plt.title(title, size=16, y=1.1)
+                plt.legend(loc='upper right', bbox_to_anchor=(0.1, 0.1))
+                
+                plt.tight_layout()
+                plt.savefig(output_path, dpi=300)
+                plt.close()
+                
+            except Exception as e:
+                self.logger.error(f"Errore generazione Radar Chart: {e}", exc_info=True)
 
     def save_dendrogram(self, distance_matrix: pd.DataFrame, filename: str, title: str):
         output_path = os.path.join(self.config.structural_comparison_directory, filename)
